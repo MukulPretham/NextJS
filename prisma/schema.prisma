@@ -29,9 +29,10 @@ model Customers{
 }
 
 model Invoices{
-  id Int @default(autoincrement()) @id
+  Sno Int @default(autoincrement()) @id
+  id Int @default(autoincrement())
   customer_id String
-  customer Customers @relation(fields: [customer_id],references: [id] , onDelete: Cascade)
+  customer Customers @relation(fields: [customer_id],references: [id])
   amount Int
   status String
   date String

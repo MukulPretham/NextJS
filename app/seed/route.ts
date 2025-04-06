@@ -115,31 +115,30 @@ export async function GET() {
     // ]);
 
     //Insert Users
-    users.map(async(user)=>{
-      await client.users.create({
-        data: user
-      });
-    })
+    await Promise.all(users.map((user) =>
+      client.users.create({ data: user })
+    ));
+    
     
     //Inserting Custommers
-    customers.map(async(customer)=>{
-      await client.customers.create({
+    await Promise.all(customers.map((customer)=>{
+       return client.customers.create({
         data: customer
       })
-    });
+    }));
 
     //Inserting Invoices
-    invoices.map(async(invoice)=>{
-      await client.invoices.create({
+    await Promise.all(invoices.map((invoice)=>{
+        return client.invoices.create({
         data: invoice
       })
-    })
+    }));
 
-    revenue.map(async(entry)=>{
-      await client.revenue.create({
+    await Promise.all(revenue.map((entry)=>{
+       return client.revenue.create({
         data: entry
       })
-    })
+    }));
 
     return Response.json({ message: 'Database seeded successfully' });
   } catch (error) {

@@ -9,4 +9,9 @@
 --> Page and layout.tsx
 --> Nav links and styles when active {usePathname}
 
+--> Populated the db
+--> Fetching Data
+    -- async components, which render in server
+    -- Promise.all() used for parallel time fetching
+    -- sequential awaits lead to waterfall fetching
 

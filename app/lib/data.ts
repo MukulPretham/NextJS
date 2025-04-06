@@ -1,4 +1,5 @@
 import postgres from 'postgres';
+import { PrismaClient } from '@prisma/client';
 import {
   CustomerField,
   CustomersTableType,
@@ -9,6 +10,7 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
+const client = new PrismaClient();
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 export async function fetchRevenue() {
@@ -16,10 +18,10 @@ export async function fetchRevenue() {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    const data = await sql<Revenue[]>`SELECT * FROM revenue`;
+    const data = await client.revenue.findMany();
 
     // console.log('Data fetch completed after 3 seconds.');
 
@@ -32,12 +34,18 @@ export async function fetchRevenue() {
 
 export async function fetchLatestInvoices() {
   try {
-    const data = await sql<LatestInvoiceRaw[]>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
-      LIMIT 5`;
+    // const data = await sql<LatestInvoiceRaw[]>`
+    //   SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
+    //   FROM invoices
+    //   JOIN customers ON invoices.customer_id = customers.id
+    //   ORDER BY invoices.date DESC
+    //   LIMIT 5`;
+
+    let data = await client.invoices.findMany({
+      include:{
+        customer: true
+      }
+    })
 
     const latestInvoices = data.map((invoice) => ({
       ...invoice,
@@ -55,30 +63,32 @@ export async function fetchCardData() {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
     // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
-    const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
-    const invoiceStatusPromise = sql`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
+    
+    // const invoiceStatusPromise = sql`SELECT
+    //      SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
+    //      SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
+    //      FROM invoices`;
 
-    const data = await Promise.all([
-      invoiceCountPromise,
-      customerCountPromise,
-      invoiceStatusPromise,
-    ]);
+    
 
-    const numberOfInvoices = Number(data[0][0].count ?? '0');
-    const numberOfCustomers = Number(data[1][0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(data[2][0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data[2][0].pending ?? '0');
+    let totalInvoices = await client.invoices.findMany();
+    let invoiceCountPromise = totalInvoices.length;
+
+    let totalCustomers = await client.customers.findMany();
+    let customerCountPromise = totalCustomers.length;
+
+    let paid = 0;
+    let pending = 0;
+    totalInvoices.forEach((invoice) => {if(invoice.status==="paid"){paid = paid+invoice.amount;}}); 
+    totalInvoices.forEach((invoice) => {if(invoice.status==="pending"){pending = pending+invoice.amount;}});
+
+   
 
     return {
-      numberOfCustomers,
-      numberOfInvoices,
-      totalPaidInvoices,
-      totalPendingInvoices,
-    };
+      customerCountPromise,
+      invoiceCountPromise,
+      paid,
+      pending}
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch card data.');
