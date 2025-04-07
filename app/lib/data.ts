@@ -100,31 +100,24 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
-    const invoices = await sql<InvoicesTable[]>`
-      SELECT
-        invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
-        customers.name,
-        customers.email,
-        customers.image_url
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
-      ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
-    `;
+    let allInvoiceDetails = await client.invoices.findMany({
+      include: {
+        customer: true
+      }
+    });
+    // console.log(allInvoiceDetails);
 
-    return invoices;
+    const Invoices = [];
+    for (const entry of allInvoiceDetails) {
+      if(entry.customer.name === query || entry.customer.email === query || entry.amount.toString() === query || entry.date === query || entry.status === query ){
+        Invoices.push(entry);
+        // console.log(Invoices);
+      }
+    }
+    // console.log(Invoices);
+    return Invoices;
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoices.');

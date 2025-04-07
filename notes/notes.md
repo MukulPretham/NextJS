@@ -7,11 +7,14 @@
 --> Fonts
 -->Image Element
 --> Page and layout.tsx
---> Nav links and styles when active {usePathname}
+--> Nav links and styles when active (sePathname hook)
 
---> Populated the db
+--> Populated database
 --> Fetching Data
     -- async components, which render in server
     -- Promise.all() used for parallel time fetching
     -- sequential awaits lead to waterfall fetching
+
+--> search functionality.
+step1: 
 
